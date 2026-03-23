@@ -3,11 +3,15 @@ package tech.lemnova.continuum.application.service;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import tech.lemnova.continuum.application.exception.NotFoundException;
+import tech.lemnova.continuum.application.exception.PlanLimitException;
 import tech.lemnova.continuum.controller.dto.note.NoteCreateRequest;
 import tech.lemnova.continuum.controller.dto.note.NoteResponse;
 import tech.lemnova.continuum.controller.dto.note.NoteUpdateRequest;
 import tech.lemnova.continuum.domain.entity.Entity;
 import tech.lemnova.continuum.domain.note.Note;
+import tech.lemnova.continuum.domain.plan.PlanConfiguration;
+import tech.lemnova.continuum.domain.user.User;
+import tech.lemnova.continuum.domain.user.UserRepository;
 import tech.lemnova.continuum.infra.persistence.NoteRepository;
 import tech.lemnova.continuum.infra.persistence.EntityRepository;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
@@ -25,18 +29,31 @@ public class NoteService {
     private final ExtractionService extractionService;
     private final VaultStorageService storageService;
     private final UserService userService;
+    private final PlanConfiguration planConfig;
+    private final UserRepository userRepo;
 
-    public NoteService(NoteRepository noteRepo, EntityRepository entityRepo, ExtractionService extractionService, VaultStorageService storageService, UserService userService) {
+    public NoteService(NoteRepository noteRepo, EntityRepository entityRepo, ExtractionService extractionService, VaultStorageService storageService, UserService userService, PlanConfiguration planConfig, UserRepository userRepo) {
         this.noteRepo = noteRepo;
         this.entityRepo = entityRepo;
         this.extractionService = extractionService;
         this.storageService = storageService;
         this.userService = userService;
+        this.planConfig = planConfig;
+        this.userRepo = userRepo;
     }
 
     public NoteResponse create(NoteCreateRequest req) {
         String userId = getCurrentUserId();
         String vaultId = getCurrentVaultId();
+        
+        // Verificar limite de notas baseado no plano do usuário
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+        long currentNoteCount = noteRepo.countByUserId(userId);
+        if (!planConfig.canCreateNote(user.getPlan(), currentNoteCount)) {
+            throw new PlanLimitException("Limite de notas atingido para seu plano. Atualize para uma assinatura superior.");
+        }
+        
         String content = req.content() != null ? req.content() : "";
         String title = req.title() != null && !req.title().isBlank() ? req.title() : extractTitle(content);
         List<String> entityIds = findMatchingEntityIds(userId, content);

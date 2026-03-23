@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -24,6 +27,8 @@ public class Entity {
     private String description;
     private String fileKey;
     private Instant createdAt;
+    @Builder.Default
+    private List<LocalDate> trackingDates = new ArrayList<>();
 
     // Método solicitado pelo TrackingService
     public boolean isTrackable() {

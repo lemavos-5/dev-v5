@@ -2,12 +2,14 @@ package tech.lemnova.continuum.application.service;
 
 import org.springframework.stereotype.Service;
 import tech.lemnova.continuum.application.exception.NotFoundException;
+import tech.lemnova.continuum.application.exception.PlanLimitException;
 import tech.lemnova.continuum.controller.dto.entity.EntityContextResponse;
 import tech.lemnova.continuum.controller.dto.entity.EntityCreateRequest;
 import tech.lemnova.continuum.controller.dto.entity.EntityUpdateRequest;
 import tech.lemnova.continuum.domain.entity.Entity;
 import tech.lemnova.continuum.domain.entity.EntityType;
 import tech.lemnova.continuum.domain.note.Note;
+import tech.lemnova.continuum.domain.plan.PlanConfiguration;
 import tech.lemnova.continuum.domain.user.User;
 import tech.lemnova.continuum.domain.user.UserRepository;
 import tech.lemnova.continuum.infra.persistence.EntityRepository;
@@ -24,12 +26,14 @@ public class EntityService {
     private final NoteRepository noteRepo;
     private final UserRepository userRepo;
     private final UserService userService;
+    private final PlanConfiguration planConfig;
 
-    public EntityService(EntityRepository entityRepo, NoteRepository noteRepo, UserRepository userRepo, UserService userService) {
+    public EntityService(EntityRepository entityRepo, NoteRepository noteRepo, UserRepository userRepo, UserService userService, PlanConfiguration planConfig) {
         this.entityRepo = entityRepo;
         this.noteRepo = noteRepo;
         this.userRepo = userRepo;
         this.userService = userService;
+        this.planConfig = planConfig;
     }
     
     private User getUser(String userId) {
@@ -48,6 +52,13 @@ public class EntityService {
     }
 
     public Entity create(String userId, String vaultId, EntityCreateRequest req) {
+        // Verificar limite de entidades baseado no plano do usuário
+        User user = getUser(userId);
+        long currentEntityCount = entityRepo.countByUserId(userId);
+        if (!planConfig.canCreateEntity(user.getPlan(), currentEntityCount)) {
+            throw new PlanLimitException("Limite de entidades atingido para seu plano. Atualize para uma assinatura superior.");
+        }
+        
         Entity entity = Entity.builder()
                 .userId(userId)
                 .vaultId(vaultId)
