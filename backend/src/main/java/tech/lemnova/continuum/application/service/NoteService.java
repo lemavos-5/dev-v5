@@ -78,9 +78,12 @@ public class NoteService {
         note.setEntityIds(findMatchingEntityIds(userId, newContent));
         note.setUpdatedAt(Instant.now());
 
-        noteRepo.save(note);
+        // Fazer upload para B2 primeiro
         String fileKey = storageService.saveNoteContent(vaultId, noteId, newContent);
         note.setFileKey(fileKey);
+
+        // Depois salvar no MongoDB com o fileKey atualizado
+        noteRepo.save(note);
 
         return NoteResponse.from(note, newContent);
     }

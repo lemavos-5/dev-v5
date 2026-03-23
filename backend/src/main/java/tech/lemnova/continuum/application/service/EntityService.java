@@ -110,6 +110,10 @@ public class EntityService {
         return entityRepo.findByVaultId(vaultId);
     }
     
+    public List<Entity> listByUser(String userId) {
+        return entityRepo.findByUserId(userId);
+    }
+    
     public EntityContextResponse getEntityContext(String userId, String entityId) {
         User user = getUser(userId);
         
