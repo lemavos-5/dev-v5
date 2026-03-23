@@ -7,10 +7,12 @@ import org.springframework.web.bind.annotation.*;
 import tech.lemnova.continuum.application.service.NoteService;
 import tech.lemnova.continuum.controller.dto.note.NoteCreateRequest;
 import tech.lemnova.continuum.controller.dto.note.NoteResponse;
+import tech.lemnova.continuum.controller.dto.note.NoteSummaryDTO;
 import tech.lemnova.continuum.controller.dto.note.NoteUpdateRequest;
 import tech.lemnova.continuum.domain.note.Note;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -28,8 +30,12 @@ public class NoteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Note>> list(@AuthenticationPrincipal CustomUserDetails user) {
-        return ResponseEntity.ok(noteService.listByUser());
+    public ResponseEntity<List<NoteSummaryDTO>> list(@AuthenticationPrincipal CustomUserDetails user) {
+        List<Note> notes = noteService.listByUser();
+        List<NoteSummaryDTO> summaries = notes != null && !notes.isEmpty()
+            ? notes.stream().map(NoteSummaryDTO::from).toList()
+            : Collections.emptyList();
+        return ResponseEntity.ok(summaries);
     }
 
     @GetMapping("/{id}")

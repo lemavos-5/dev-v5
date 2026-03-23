@@ -2,6 +2,7 @@ package tech.lemnova.continuum.controller.dto.note;
 
 import tech.lemnova.continuum.domain.note.Note;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 
 public record NoteResponse(
@@ -11,7 +12,7 @@ public record NoteResponse(
     public static NoteResponse from(Note note, String content) {
         return new NoteResponse(
             note.getId(), note.getUserId(), null,
-            note.getTitle(), note.getEntityIds(), content,
+            note.getTitle(), note.getEntityIds() != null ? note.getEntityIds() : Collections.emptyList(), content,
             note.getCreatedAt(), note.getUpdatedAt());
     }
 }

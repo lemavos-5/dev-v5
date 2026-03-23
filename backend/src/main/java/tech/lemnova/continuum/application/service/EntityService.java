@@ -7,6 +7,7 @@ import tech.lemnova.continuum.application.exception.PlanLimitException;
 import tech.lemnova.continuum.application.exception.BadRequestException;
 import tech.lemnova.continuum.controller.dto.entity.EntityContextResponse;
 import tech.lemnova.continuum.controller.dto.entity.EntityCreateRequest;
+import tech.lemnova.continuum.controller.dto.entity.EntityResponse;
 import tech.lemnova.continuum.controller.dto.entity.EntityUpdateRequest;
 import tech.lemnova.continuum.domain.entity.Entity;
 import tech.lemnova.continuum.domain.entity.EntityType;
@@ -149,6 +150,17 @@ public class EntityService {
         return entityRepo.findByUserId(userId);
     }
     
+    /**
+     * Carrega apenas os dados necessários para construir o grafo de conhecimento.
+     * Otimizado para trazer apenas id e title, economizando memória e banda de rede.
+     * 
+     * @param userId ID do usuário
+     * @return Lista de entidades com apenas os campos essenciais para o grafo
+     */
+    public List<Entity> listByUserForGraph(String userId) {
+        return entityRepo.findGraphDataByUserId(userId);
+    }
+    
     public EntityContextResponse getEntityContext(String userId, String entityId) {
         User user = getUser(userId);
         
@@ -166,7 +178,7 @@ public class EntityService {
             .map(note -> new EntityContextResponse.NoteSummary(note.getId(), note.getTitle()))
             .collect(Collectors.toList());
 
-        return new EntityContextResponse(entity, summaries);
+        return EntityContextResponse.from(entity, summaries);
     }
 
     public Entity trackHabit(String userId, String entityId) {

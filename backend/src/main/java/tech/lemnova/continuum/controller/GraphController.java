@@ -37,8 +37,9 @@ public class GraphController {
         // Usa uma query otimizada que não carrega o campo content para economizar memória e banda.
         List<Note> notes = noteService.listByUserForGraph();
 
-        // Buscar todas as entidades do usuário
-        List<Entity> entities = entityService.listByUser(userId);
+        // Buscar apenas os dados necessários das entidades (id, title).
+        // Usa uma query otimizada que não carrega campos desnecessários para economizar memória e banda.
+        List<Entity> entities = entityService.listByUserForGraph(userId);
 
         // Criar nós das notas
         List<NodeDTO> nodes = new ArrayList<>();

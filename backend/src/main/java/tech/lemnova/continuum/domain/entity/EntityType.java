@@ -1,9 +1,16 @@
 package tech.lemnova.continuum.domain.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum EntityType {
     PERSON, PROJECT, TOPIC, ORGANIZATION, HABIT;
+
+    @JsonValue
+    @Override
+    public String toString() {
+        return this.name();
+    }
 
     @JsonCreator
     public static EntityType fromValue(String value) {
