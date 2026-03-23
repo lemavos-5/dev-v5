@@ -11,6 +11,7 @@ import tech.lemnova.continuum.domain.entity.Entity;
 import tech.lemnova.continuum.domain.note.Note;
 import tech.lemnova.continuum.infra.persistence.EntityRepository;
 import tech.lemnova.continuum.infra.persistence.NoteRepository;
+import tech.lemnova.continuum.infra.config.PlanConfiguration;
 
 import java.time.Instant;
 import java.util.List;
@@ -25,13 +26,14 @@ class EntityServiceTest {
     @Mock NoteRepository noteRepo;
     @Mock tech.lemnova.continuum.domain.user.UserRepository userRepo;
     @Mock UserService userService;
+    @Mock PlanConfiguration planConfig;
 
     EntityService entityService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        entityService = new EntityService(entityRepo, noteRepo, userRepo, userService);
+        entityService = new EntityService(entityRepo, noteRepo, userRepo, userService, planConfig);
     }
 
     @Test

@@ -13,6 +13,7 @@ import tech.lemnova.continuum.infra.persistence.EntityRepository;
 import tech.lemnova.continuum.infra.vault.VaultStorageService;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
 import tech.lemnova.continuum.domain.user.User;
+import tech.lemnova.continuum.infra.config.PlanConfiguration;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,13 +28,16 @@ class NoteServiceUnitTest {
     @Mock EntityRepository entityRepo;
     @Mock VaultStorageService storageService;
     @Mock UserService userService;
+    @Mock ExtractionService extractionService;
+    @Mock PlanConfiguration planConfig;
+    @Mock tech.lemnova.continuum.domain.user.UserRepository userRepository;
 
     NoteService noteService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        noteService = new NoteService(noteRepo, entityRepo, storageService, userService);
+        noteService = new NoteService(noteRepo, entityRepo, extractionService, storageService, userService, planConfig, userRepository);
     }
 
     private void setAuthenticatedUser(String userId) {
