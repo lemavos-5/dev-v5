@@ -42,11 +42,26 @@ public class StripeWebhookController {
 
         try {
             switch (event.getType()) {
-                case "checkout.session.completed"    -> subscriptionService.handleCheckoutCompleted(event);
-                case "customer.subscription.updated" -> subscriptionService.handleSubscriptionUpdated(event);
-                case "customer.subscription.deleted" -> subscriptionService.handleSubscriptionDeleted(event);
-                case "invoice.payment_succeeded"     -> subscriptionService.handlePaymentSucceeded(event);
-                case "invoice.payment_failed"        -> subscriptionService.handlePaymentFailed(event);
+                case "checkout.session.completed"    -> {
+                    log.debug("Processing checkout.session.completed event");
+                    subscriptionService.handleCheckoutCompleted(event);
+                }
+                case "customer.subscription.updated" -> {
+                    log.debug("Processing customer.subscription.updated event");
+                    subscriptionService.handleSubscriptionUpdated(event);
+                }
+                case "customer.subscription.deleted" -> {
+                    log.debug("Processing customer.subscription.deleted event");
+                    subscriptionService.handleSubscriptionDeleted(event);
+                }
+                case "invoice.payment_succeeded"     -> {
+                    log.debug("Processing invoice.payment_succeeded event");
+                    subscriptionService.handlePaymentSucceeded(event);
+                }
+                case "invoice.payment_failed"        -> {
+                    log.debug("Processing invoice.payment_failed event");
+                    subscriptionService.handlePaymentFailed(event);
+                }
                 default -> log.debug("Ignored Stripe event: {}", event.getType());
             }
         } catch (Exception e) {

@@ -2,6 +2,7 @@ package tech.lemnova.continuum.application.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -32,12 +33,12 @@ class NoteServiceUnitTest {
     @Mock PlanConfiguration planConfig;
     @Mock tech.lemnova.continuum.domain.user.UserRepository userRepository;
 
+    @InjectMocks
     NoteService noteService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        noteService = new NoteService(noteRepo, entityRepo, extractionService, storageService, userService, planConfig, userRepository);
     }
 
     private void setAuthenticatedUser(String userId) {

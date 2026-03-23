@@ -1,11 +1,13 @@
 package tech.lemnova.continuum.application.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import tech.lemnova.continuum.domain.entity.Entity;
 
 import java.util.List;
 import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 public class ExtractionService {
 
@@ -22,7 +24,7 @@ public class ExtractionService {
             return List.of();
         }
 
-        return userEntities.stream()
+        List<String> extractedIds = userEntities.stream()
                 .filter(entity -> entity != null && entity.getTitle() != null && !entity.getTitle().isBlank())
                 .filter(entity -> {
                     String title = entity.getTitle();
@@ -33,5 +35,11 @@ public class ExtractionService {
                 .filter(id -> id != null && !id.isBlank())
                 .distinct()
                 .toList();
+
+        if (!extractedIds.isEmpty()) {
+            log.info("Extracted {} entities from note", extractedIds.size());
+        }
+
+        return extractedIds;
     }
 }

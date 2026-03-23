@@ -3,6 +3,7 @@ package tech.lemnova.continuum.application.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import tech.lemnova.continuum.controller.dto.entity.EntityCreateRequest;
@@ -28,12 +29,12 @@ class EntityServiceTest {
     @Mock UserService userService;
     @Mock PlanConfiguration planConfig;
 
+    @InjectMocks
     EntityService entityService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        entityService = new EntityService(entityRepo, noteRepo, userRepo, userService, planConfig);
     }
 
     @Test

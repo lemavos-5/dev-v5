@@ -220,6 +220,7 @@ public class BackblazeVaultStorage implements VaultStorageService {
         s3.putObject(
                 PutObjectRequest.builder().bucket(bucket).key(key).contentType(contentType).build(),
                 RequestBody.fromInputStream(new ByteArrayInputStream(bytes), bytes.length));
+        log.info("Successfully uploaded file to B2: {}", key);
     }
 
     private Optional<String> get(String key) {
