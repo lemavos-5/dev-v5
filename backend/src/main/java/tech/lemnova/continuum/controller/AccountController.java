@@ -2,22 +2,28 @@ package tech.lemnova.continuum.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tech.lemnova.continuum.application.service.AuthService;
+import tech.lemnova.continuum.application.service.ExportService;
 import tech.lemnova.continuum.controller.dto.auth.UserContextResponse;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
 
 import java.util.Map;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/account")
 public class AccountController {
 
     private final AuthService authService;
+    private final ExportService exportService;
 
-    public AccountController(AuthService authService) {
+    public AccountController(AuthService authService, ExportService exportService) {
         this.authService = authService;
+        this.exportService = exportService;
     }
 
     @GetMapping("/me")
@@ -76,5 +82,22 @@ public class AccountController {
         
         authService.completePasswordReset(token, newPass);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<String> exportData(@AuthenticationPrincipal CustomUserDetails user) {
+        try {
+            String jsonData = exportService.exportUserDataAsJson(user.getUserId());
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setContentDispositionFormData("attachment", "continuum-backup.json");
+            headers.add("Content-Length", String.valueOf(jsonData.getBytes(StandardCharsets.UTF_8).length));
+            
+            return new ResponseEntity<>(jsonData, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("{\"error\":\"Falha ao exportar dados\"}");
+        }
     }
 }

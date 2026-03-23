@@ -80,4 +80,11 @@ public class EntityController {
         entityService.delete(user.getVaultId(), id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/track")
+    public ResponseEntity<Entity> trackHabit(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable String id) {
+        return ResponseEntity.ok(entityService.trackHabit(user.getUserId(), id));
+    }
 }

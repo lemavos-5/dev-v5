@@ -5,10 +5,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import tech.lemnova.continuum.controller.dto.error.ErrorResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,35 +21,42 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<Map<String, String>> handleBadRequest(BadRequestException e) {
-        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException e) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse(e.getMessage(), "BAD_REQUEST"));
     }
 
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFound(NotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage(), "NOT_FOUND"));
     }
 
     @ExceptionHandler(PlanLimitException.class)
-    public ResponseEntity<Map<String, String>> handlePlanLimit(PlanLimitException e) {
-        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(Map.of("error", e.getMessage()));
+    public ResponseEntity<ErrorResponse> handlePlanLimit(PlanLimitException e) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(new ErrorResponse(e.getMessage(), "PLAN_LIMIT_EXCEEDED"));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("Access denied", "FORBIDDEN"));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException e) {
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
         Map<String, String> errors = new HashMap<>();
         e.getBindingResult().getAllErrors().forEach(err -> {
             String field = (err instanceof FieldError fe) ? fe.getField() : err.getObjectName();
             errors.put(field, err.getDefaultMessage());
         });
-        return ResponseEntity.badRequest().body(Map.of(
-            "error", "Validation failed",
-            "fields", errors
-        ));
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse("Validation failed", "VALIDATION_ERROR", errors));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, String>> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
         String message = "Invalid JSON format";
         if (e.getCause() != null) {
             message = e.getCause().getMessage();
@@ -55,13 +64,14 @@ public class GlobalExceptionHandler {
         } else {
             log.error("HttpMessageNotReadableException: {}", e.getMessage());
         }
-        return ResponseEntity.badRequest().body(Map.of("error", message));
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse(message, "INVALID_JSON"));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleGeneric(Exception e) {
+    public ResponseEntity<ErrorResponse> handleGeneric(Exception e) {
         log.error("Unhandled exception: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                             .body(Map.of("error", "Internal server error"));
+                .body(new ErrorResponse("Internal server error", "INTERNAL_ERROR"));
     }
 }

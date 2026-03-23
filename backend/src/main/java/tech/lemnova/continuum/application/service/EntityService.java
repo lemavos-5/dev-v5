@@ -3,6 +3,7 @@ package tech.lemnova.continuum.application.service;
 import org.springframework.stereotype.Service;
 import tech.lemnova.continuum.application.exception.NotFoundException;
 import tech.lemnova.continuum.application.exception.PlanLimitException;
+import tech.lemnova.continuum.application.exception.BadRequestException;
 import tech.lemnova.continuum.controller.dto.entity.EntityContextResponse;
 import tech.lemnova.continuum.controller.dto.entity.EntityCreateRequest;
 import tech.lemnova.continuum.controller.dto.entity.EntityUpdateRequest;
@@ -143,5 +144,38 @@ public class EntityService {
             .collect(Collectors.toList());
 
         return new EntityContextResponse(entity, summaries);
+    }
+
+    public Entity trackHabit(String userId, String entityId) {
+        User user = getUser(userId);
+        
+        // Validar se a entidade pertence ao usuário
+        Entity entity = entityRepo.findById(entityId)
+            .filter(e -> e.getVaultId() != null && e.getVaultId().equals(user.getVaultId()))
+            .orElseThrow(() -> new NotFoundException("Entity not found: " + entityId));
+        
+        // Validar se é do tipo HABIT
+        if (entity.getType() != EntityType.HABIT) {
+            throw new BadRequestException("Entidade não é um hábito. Tipo: " + entity.getType());
+        }
+        
+        // Validar se o plano permite criar hábitos (verifica quantidade atual)
+        long currentHabitCount = entityRepo.findByUserId(userId).stream()
+                .filter(e -> e.getType() == EntityType.HABIT)
+                .count();
+        if (!planConfig.canCreateHabit(user.getPlan(), currentHabitCount)) {
+            throw new PlanLimitException("Limite de hábitos atingido para seu plano.");
+        }
+        
+        // Adicionar a data atual se ainda não existir (evita duplicata)
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (entity.getTrackingDates() == null) {
+            entity.setTrackingDates(new java.util.ArrayList<>());
+        }
+        if (!entity.getTrackingDates().contains(today)) {
+            entity.getTrackingDates().add(today);
+        }
+        
+        return entityRepo.save(entity);
     }
 }
