@@ -31,14 +31,19 @@ import java.util.stream.Collectors;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final RateLimitingFilter rateLimitingFilter;
+    private final SecurityHeadersFilter securityHeadersFilter;
     private final CustomUserDetailsService userDetailsService;
 
     // Alterado para a porta 5173 (Vite padrão)
     @Value("${cors.allowed.origins:http://localhost:5173}")
     private String corsAllowedOrigins;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, RateLimitingFilter rateLimitingFilter, 
+                         SecurityHeadersFilter securityHeadersFilter, CustomUserDetailsService userDetailsService) {
         this.jwtAuthFilter      = jwtAuthFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
+        this.securityHeadersFilter = securityHeadersFilter;
         this.userDetailsService = userDetailsService;
     }
 
@@ -48,6 +53,11 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"))
+                .frameOptions(frameOptions -> frameOptions.deny())
+                .contentTypeOptions(contentTypeOptions -> contentTypeOptions.disable().and().xssProtection())
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/health", "/error", "/actuator/**").permitAll()
                 .requestMatchers("/api/webhooks/**", "/webhooks/**").permitAll()
@@ -69,6 +79,8 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
+            .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

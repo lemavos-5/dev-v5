@@ -63,14 +63,31 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@RequestBody Map<String, String> body) {
-        String token = body.get("token");
-        if (token == null || token.isBlank()) throw new BadRequestException("token is required");
-        return ResponseEntity.ok(authService.refresh(token));
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || refreshToken.isBlank()) throw new BadRequestException("refreshToken is required");
+        return ResponseEntity.ok(authService.refresh(refreshToken));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@AuthenticationPrincipal CustomUserDetails user) {
-        if (user != null) authService.logout(user.getUserId());
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal CustomUserDetails user,
+                                      @RequestBody(required = false) Map<String, String> body) {
+        if (user != null) {
+            String accessToken = null;
+            String refreshToken = null;
+            
+            if (body != null) {
+                accessToken = body.get("accessToken");
+                refreshToken = body.get("refreshToken");
+            }
+            
+            // Se tokens forem fornecidos, revogar especificamente
+            if (accessToken != null || refreshToken != null) {
+                authService.logout(user.getUserId(), accessToken, refreshToken);
+            } else {
+                // Caso contrário, revogar todos os tokens do usuário
+                authService.logout(user.getUserId());
+            }
+        }
         return ResponseEntity.noContent().build();
     }
 

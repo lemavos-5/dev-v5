@@ -21,6 +21,8 @@ import tech.lemnova.continuum.domain.plan.PlanType;
 import tech.lemnova.continuum.domain.subscription.Subscription;
 import tech.lemnova.continuum.domain.subscription.SubscriptionRepository;
 import tech.lemnova.continuum.domain.subscription.SubscriptionStatus;
+import tech.lemnova.continuum.domain.token.TokenBlacklist;
+import tech.lemnova.continuum.domain.token.TokenBlacklistRepository;
 import tech.lemnova.continuum.domain.user.User;
 import tech.lemnova.continuum.domain.user.UserRepository;
 import tech.lemnova.continuum.infra.email.EmailService;
@@ -30,6 +32,7 @@ import tech.lemnova.continuum.infra.vault.VaultStorageService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,6 +45,7 @@ public class AuthService {
     private final SubscriptionRepository subscriptions;
     private final EmailVerificationTokenRepository tokenRepo;
     private final PasswordResetTokenRepository passwordResetRepo;
+    private final TokenBlacklistRepository tokenBlacklistRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailService emailService;
@@ -52,6 +56,7 @@ public class AuthService {
                        SubscriptionRepository subscriptions,
                        EmailVerificationTokenRepository tokenRepo,
                        PasswordResetTokenRepository passwordResetRepo,
+                       TokenBlacklistRepository tokenBlacklistRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        EmailService emailService,
@@ -61,6 +66,7 @@ public class AuthService {
         this.subscriptions = subscriptions;
         this.tokenRepo = tokenRepo;
         this.passwordResetRepo = passwordResetRepo;
+        this.tokenBlacklistRepository = tokenBlacklistRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.emailService = emailService;
@@ -166,14 +172,38 @@ public class AuthService {
             throw new BadRequestException("Invalid credentials");
         if (!user.isEmailVerified())
             throw new BadRequestException("Email not verified");
-        return buildAuthResponse(user);
+        return buildAuthResponseWithTokenPair(user);
     }
 
     @Transactional(readOnly = true)
-    public AuthResponse refresh(String token) {
-        String userId = jwtService.extractUserId(token);
+    public AuthResponse refresh(String refreshToken) {
+        // Validar que é um Refresh Token
+        if (!jwtService.isValid(refreshToken)) {
+            throw new BadRequestException("Refresh token expired");
+        }
+        if (!jwtService.isRefreshToken(refreshToken)) {
+            throw new BadRequestException("Invalid token type");
+        }
+
+        // Verificar blacklist
+        String jti = jwtService.extractJti(refreshToken);
+        if (jti != null && tokenBlacklistRepository.findByJti(jti).isPresent()) {
+            throw new BadRequestException("Refresh token has been revoked");
+        }
+
+        String userId = jwtService.extractUserId(refreshToken);
         User user = users.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
-        return buildAuthResponse(user);
+        
+        // Revogar token antigo (Refresh Token Rotation)
+        if (jti != null) {
+            long expirationMs = jwtService.getTimeUntilExpiration(refreshToken);
+            Instant expiresAt = Instant.now().plus(expirationMs, ChronoUnit.MILLIS);
+            TokenBlacklist blacklistedToken = new TokenBlacklist(jti, userId, JwtService.TOKEN_TYPE_REFRESH, expiresAt);
+            tokenBlacklistRepository.save(blacklistedToken);
+            log.info("Refresh token rotated for user: {}", userId);
+        }
+        
+        return buildAuthResponseWithTokenPair(user);
     }
 
     @Transactional
@@ -202,12 +232,47 @@ public class AuthService {
             user.setEmailVerified(true);
             users.save(user);
         }
-        return buildAuthResponse(user);
+        return buildAuthResponseWithTokenPair(user);
     }
 
+    /**
+     * Revoga todos os tokens do usuário (logout).
+     * Coloca os tokens na blacklist para impedir seu uso futuro.
+     */
+    @Transactional
+    public void logout(String userId, String accessToken, String refreshToken) {
+        log.info("Logout for user: {}", userId);
+        
+        // Revogar Access Token se fornecido
+        if (accessToken != null && jwtService.isValid(accessToken)) {
+            String jti = jwtService.extractJti(accessToken);
+            if (jti != null) {
+                long expirationMs = jwtService.getTimeUntilExpiration(accessToken);
+                Instant expiresAt = Instant.now().plus(expirationMs, ChronoUnit.MILLIS);
+                TokenBlacklist blacklistEntry = new TokenBlacklist(jti, userId, JwtService.TOKEN_TYPE_ACCESS, expiresAt);
+                tokenBlacklistRepository.save(blacklistEntry);
+            }
+        }
+        
+        // Revogar Refresh Token se fornecido
+        if (refreshToken != null && jwtService.isValid(refreshToken)) {
+            String jti = jwtService.extractJti(refreshToken);
+            if (jti != null) {
+                long expirationMs = jwtService.getTimeUntilExpiration(refreshToken);
+                Instant expiresAt = Instant.now().plus(expirationMs, ChronoUnit.MILLIS);
+                TokenBlacklist blacklistEntry = new TokenBlacklist(jti, userId, JwtService.TOKEN_TYPE_REFRESH, expiresAt);
+                tokenBlacklistRepository.save(blacklistEntry);
+            }
+        }
+    }
+
+    /**
+     * Versão simplificada de logout (sem requer tokens específicos).
+     */
     @Transactional
     public void logout(String userId) {
-        log.info("Logout for user: {}", userId);
+        log.info("Logout for user: {} (all tokens will be invalidated on next request)", userId);
+        tokenBlacklistRepository.deleteByUserId(userId);
     }
 
     @Transactional
@@ -267,10 +332,6 @@ public class AuthService {
         }
     }
 
-    private AuthResponse buildAuthResponse(User user) {
-        return new AuthResponse(jwtService.generateFromUser(user), user.getId(), user.getUsername(), user.getEmail(), user.getPlan());
-    }
-
     private void createFreeSubscription(String userId) {
         Subscription sub = Subscription.builder()
                 .userId(userId).planType(PlanType.FREE).status(SubscriptionStatus.ACTIVE)
@@ -310,5 +371,27 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         users.save(user);
         passwordResetRepo.delete(token);
+    }
+
+    /**
+     * Constrói AuthResponse com TokenPair (Access + Refresh).
+     */
+    private AuthResponse buildAuthResponseWithTokenPair(User user) {
+        JwtService.TokenPair tokens = jwtService.generateTokenPairFromUser(user);
+        return AuthResponse.withTokenPair(
+            tokens.accessToken(), 
+            tokens.refreshToken(), 
+            user.getId(), 
+            user.getUsername(), 
+            user.getEmail(), 
+            user.getPlan()
+        );
+    }
+
+    /**
+     * Constrói AuthResponse com apenas 1 token (compatibilidade com código antigo).
+     */
+    private AuthResponse buildAuthResponse(User user) {
+        return new AuthResponse(jwtService.generateFromUser(user), user.getId(), user.getUsername(), user.getEmail(), user.getPlan());
     }
 }
