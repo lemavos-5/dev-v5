@@ -2,6 +2,7 @@ package tech.lemnova.continuum.domain.note;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Instant;
 import java.util.List;
@@ -10,9 +11,12 @@ import java.util.List;
 public class Note {
     @Id
     private String id;
+    @Indexed
     private String userId;
     private String entityId;
+    @Indexed
     private List<String> entityIds;
+    @Indexed
     private String title;
     @Transient
     private String content;

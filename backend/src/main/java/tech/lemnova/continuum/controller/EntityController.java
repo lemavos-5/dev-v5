@@ -34,7 +34,7 @@ public class EntityController {
     @GetMapping
     public ResponseEntity<List<Entity>> list(
             @AuthenticationPrincipal CustomUserDetails user) {
-        return ResponseEntity.ok(entityService.listByVault(user.getVaultId()));
+        return ResponseEntity.ok(entityService.listByUser(user.getUserId()));
     }
 
     @GetMapping("/{id}")
@@ -55,14 +55,14 @@ public class EntityController {
     public ResponseEntity<List<Note>> getNotesForEntity(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id) {
-        return ResponseEntity.ok(entityService.getNotesForEntity(user.getVaultId(), id));
+        return ResponseEntity.ok(entityService.getNotesForEntity(user.getUserId(), user.getVaultId(), id));
     }
 
     @GetMapping("/{id}/connections")
     public ResponseEntity<List<Entity>> getConnections(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id) {
-        return ResponseEntity.ok(entityService.getConnections(user.getVaultId(), id));
+        return ResponseEntity.ok(entityService.getConnections(user.getUserId(), user.getVaultId(), id));
     }
 
     @PutMapping("/{id}")
@@ -70,14 +70,14 @@ public class EntityController {
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id,
             @Valid @RequestBody EntityUpdateRequest req) {
-        return ResponseEntity.ok(entityService.update(user.getVaultId(), id, req));
+        return ResponseEntity.ok(entityService.update(user.getUserId(), user.getVaultId(), id, req));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id) {
-        entityService.delete(user.getVaultId(), id);
+        entityService.delete(user.getUserId(), user.getVaultId(), id);
         return ResponseEntity.noContent().build();
     }
 

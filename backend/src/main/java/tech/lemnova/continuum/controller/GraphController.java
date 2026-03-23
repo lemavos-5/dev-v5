@@ -33,8 +33,9 @@ public class GraphController {
     public ResponseEntity<GraphDTO> getGraphData(@AuthenticationPrincipal CustomUserDetails user) {
         String userId = user.getUserId();
 
-        // Buscar todas as notas do usuário
-        List<Note> notes = noteService.listByUser();
+        // Buscar apenas os dados necessários para o grafo (id, title, entityIds).
+        // Usa uma query otimizada que não carrega o campo content para economizar memória e banda.
+        List<Note> notes = noteService.listByUserForGraph();
 
         // Buscar todas as entidades do usuário
         List<Entity> entities = entityService.listByUser(userId);

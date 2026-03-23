@@ -82,6 +82,8 @@ class EntityServiceTest {
     @Test
     @DisplayName("getNotesForEntity: retrieves all notes linked to entity")
     void getNotesForEntity_returnsNotes() {
+        String userId = "user1";
+        String vaultId = "vault1";
         String entityId = "e1";
 
         Note note1 = new Note();
@@ -93,9 +95,15 @@ class EntityServiceTest {
         note2.setId("n2");
         note2.setEntityIds(List.of("other"));
 
-        when(noteRepo.findAll()).thenReturn(List.of(note1, note2));
+        Entity entity = new Entity();
+        entity.setId(entityId);
+        entity.setVaultId(vaultId);
+        entity.setTitle("Entity 1");
 
-        List<Note> result = entityService.getNotesForEntity("vault1", entityId);
+        when(entityRepo.findById(entityId)).thenReturn(java.util.Optional.of(entity));
+        when(noteRepo.findByUserId(userId)).thenReturn(List.of(note1, note2));
+
+        List<Note> result = entityService.getNotesForEntity(userId, vaultId, entityId);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("Note 1");

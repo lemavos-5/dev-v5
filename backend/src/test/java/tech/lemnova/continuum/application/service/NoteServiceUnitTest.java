@@ -15,7 +15,6 @@ import tech.lemnova.continuum.infra.persistence.NoteRepository;
 import tech.lemnova.continuum.infra.vault.VaultStorageService;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
 import tech.lemnova.continuum.domain.user.User;
-import tech.lemnova.continuum.application.service.ExtractionService;
 
 import java.time.Instant;
 import java.util.List;

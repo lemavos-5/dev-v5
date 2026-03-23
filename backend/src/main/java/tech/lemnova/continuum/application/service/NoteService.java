@@ -1,5 +1,6 @@
 package tech.lemnova.continuum.application.service;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import tech.lemnova.continuum.application.exception.NotFoundException;
@@ -119,11 +120,26 @@ public class NoteService {
         return noteRepo.findByUserId(getCurrentUserId());
     }
 
-    public void deleteNote(String noteId, String userId) {
+    /**
+     * Carrega apenas os dados necessários para construir o grafo de conhecimento.
+     * Otimizado para trazer apenas id, title e entityIds, economizando memória e banda de rede.
+     * O campo content não é incluído nesta query.
+     */
+    public List<Note> listByUserForGraph() {
+        String userId = getCurrentUserId();
+        return noteRepo.findGraphDataByUserId(userId);
+    }
+
+    public void deleteNote(String noteId) {
+        String userId = getCurrentUserId();
         String vaultId = getCurrentVaultId();
         Note note = noteRepo.findById(noteId)
-            .filter(n -> n.getUserId().equals(userId))
             .orElseThrow(() -> new NotFoundException("Note not found: " + noteId));
+        
+        // OWNERSHIP: Validar que a nota pertence ao usuário autenticado
+        if (!note.getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to delete this note");
+        }
 
         // Delete file from B2 if fileKey exists
         if (note.getFileKey() != null && !note.getFileKey().isEmpty()) {

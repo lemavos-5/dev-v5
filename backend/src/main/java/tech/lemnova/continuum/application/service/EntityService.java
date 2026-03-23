@@ -1,5 +1,6 @@
 package tech.lemnova.continuum.application.service;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import tech.lemnova.continuum.application.exception.NotFoundException;
 import tech.lemnova.continuum.application.exception.PlanLimitException;
@@ -80,22 +81,34 @@ public class EntityService {
                 .orElseThrow(() -> new NotFoundException("Entity not found: " + entityId));
     }
 
-    public List<Note> getNotesForEntity(String vaultId, String entityId) {
+    public List<Note> getNotesForEntity(String userId, String vaultId, String entityId) {
+        User user = getUser(userId);
+        // OWNERSHIP: Validar que a entidade pertence ao vault (e portanto ao usuário)
+        Entity entity = entityRepo.findById(entityId)
+                .filter(e -> e.getVaultId().equals(vaultId))
+                .orElseThrow(() -> new NotFoundException("Entity not found: " + entityId));
+        
         // Busca notas que contenham o ID desta entidade na lista de conexões
-        return noteRepo.findAll().stream()
+        return noteRepo.findByUserId(userId).stream()
                 .filter(n -> n.getEntityIds() != null && n.getEntityIds().contains(entityId))
                 .collect(Collectors.toList());
     }
 
-    public List<Entity> getConnections(String vaultId, String entityId) {
+    public List<Entity> getConnections(String userId, String vaultId, String entityId) {
+        User user = getUser(userId);
+        // OWNERSHIP: Validar que a entidade pertence ao vault (e portanto ao usuário)
+        entityRepo.findById(entityId)
+                .filter(e -> e.getVaultId().equals(vaultId))
+                .orElseThrow(() -> new NotFoundException("Entity not found: " + entityId));
+        
         // 1. Encontrar IDs de notas que citam esta entidade
-        List<String> noteIdsWithThisEntity = noteRepo.findAll().stream()
+        List<String> noteIdsWithThisEntity = noteRepo.findByUserId(userId).stream()
                 .filter(n -> n.getEntityIds() != null && n.getEntityIds().contains(entityId))
                 .map(Note::getId)
                 .collect(Collectors.toList());
 
         // 2. Encontrar outras entidades que aparecem nessas mesmas notas
-        List<String> connectedEntityIds = noteRepo.findAll().stream()
+        List<String> connectedEntityIds = noteRepo.findByUserId(userId).stream()
                 .filter(n -> noteIdsWithThisEntity.contains(n.getId()))
                 .flatMap(n -> n.getEntityIds().stream())
                 .filter(id -> !id.equals(entityId))
@@ -105,16 +118,26 @@ public class EntityService {
         return entityRepo.findByIdIn(connectedEntityIds);
     }
 
-    public Entity update(String vaultId, String entityId, EntityUpdateRequest req) {
-        Entity entity = getEntity(vaultId, entityId);
+    public Entity update(String userId, String vaultId, String entityId, EntityUpdateRequest req) {
+        User user = getUser(userId);
+        // OWNERSHIP: Validar que a entidade pertence ao usuário
+        Entity entity = entityRepo.findById(entityId)
+                .filter(e -> e.getVaultId().equals(vaultId) && e.getUserId() != null && e.getUserId().equals(userId))
+                .orElseThrow(() -> new AccessDeniedException("You do not have permission to update this entity"));
+        
         if (req.title() != null && !req.title().isBlank()) entity.setTitle(req.title().trim());
         if (req.description() != null) entity.setDescription(req.description());
         if (req.type() != null) entity.setType(req.type());
         return entityRepo.save(entity);
     }
 
-    public void delete(String vaultId, String entityId) {
-        Entity entity = getEntity(vaultId, entityId);
+    public void delete(String userId, String vaultId, String entityId) {
+        User user = getUser(userId);
+        // OWNERSHIP: Validar que a entidade pertence ao usuário
+        Entity entity = entityRepo.findById(entityId)
+                .filter(e -> e.getVaultId().equals(vaultId) && e.getUserId() != null && e.getUserId().equals(userId))
+                .orElseThrow(() -> new AccessDeniedException("You do not have permission to delete this entity"));
+        
         entityRepo.delete(entity);
     }
 
