@@ -10,9 +10,9 @@ import tech.lemnova.continuum.controller.dto.entity.EntityCreateRequest;
 import tech.lemnova.continuum.controller.dto.entity.EntityUpdateRequest;
 import tech.lemnova.continuum.domain.entity.Entity;
 import tech.lemnova.continuum.domain.note.Note;
+import tech.lemnova.continuum.domain.plan.PlanConfiguration;
 import tech.lemnova.continuum.infra.persistence.EntityRepository;
 import tech.lemnova.continuum.infra.persistence.NoteRepository;
-import tech.lemnova.continuum.infra.config.PlanConfiguration;
 
 import java.time.Instant;
 import java.util.List;

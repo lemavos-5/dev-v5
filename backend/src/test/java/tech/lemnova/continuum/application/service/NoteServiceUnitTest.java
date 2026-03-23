@@ -9,12 +9,12 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import tech.lemnova.continuum.domain.entity.Entity;
 import tech.lemnova.continuum.domain.note.Note;
-import tech.lemnova.continuum.infra.persistence.NoteRepository;
+import tech.lemnova.continuum.domain.plan.PlanConfiguration;
 import tech.lemnova.continuum.infra.persistence.EntityRepository;
+import tech.lemnova.continuum.infra.persistence.NoteRepository;
 import tech.lemnova.continuum.infra.vault.VaultStorageService;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
 import tech.lemnova.continuum.domain.user.User;
-import tech.lemnova.continuum.infra.config.PlanConfiguration;
 
 import java.time.Instant;
 import java.util.List;
