@@ -31,7 +31,7 @@ class JwtServiceUnitTest {
         expField.setAccessible(true);
         expField.setLong(jwtService, 1000L * 60 * 60); // 1 hour
 
-        String token = jwtService.generate("user-123", "alice");
+        String token = jwtService.generateAccessToken("user-123", "alice");
         assertThat(token).isNotNull();
 
         Claims claims = jwtService.parse(token);
@@ -91,7 +91,7 @@ class JwtServiceUnitTest {
         expField.setLong(jwtService, 1000L * 60 * 60);
 
         UUID userId = UUID.fromString("987e6543-e89b-12d3-a456-426614174999");
-        String token = jwtService.generate(userId.toString(), "charlie");
+        String token = jwtService.generateAccessToken(userId.toString(), "charlie");
 
         UUID extractedId = jwtService.extractUserIdAsUUID(token);
         assertThat(extractedId).isEqualTo(userId);

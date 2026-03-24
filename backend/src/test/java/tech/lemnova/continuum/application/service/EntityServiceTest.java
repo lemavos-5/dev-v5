@@ -120,6 +120,7 @@ class EntityServiceTest {
     @Test
     @DisplayName("update: updates entity title and description")
     void update_updatesEntity() {
+        String userId = "user1";
         String vaultId = "vault1";
         String entityId = "e1";
         EntityUpdateRequest req = new EntityUpdateRequest("Updated Title", tech.lemnova.continuum.domain.entity.EntityType.PERSON, "Updated Description");
@@ -127,12 +128,13 @@ class EntityServiceTest {
         Entity entity = new Entity();
         entity.setId(entityId);
         entity.setVaultId(vaultId);
+        entity.setUserId(userId);
         entity.setTitle("Old Title");
 
         when(entityRepo.findById(entityId)).thenReturn(Optional.of(entity));
         when(entityRepo.save(any(Entity.class))).thenAnswer(i -> i.getArgument(0));
 
-        Entity result = entityService.update(vaultId, entityId, req);
+        Entity result = entityService.update(userId, vaultId, entityId, req);
         
         assertThat(result.getTitle()).isEqualTo("Updated Title");
         assertThat(result.getDescription()).isEqualTo("Updated Description");
@@ -141,16 +143,18 @@ class EntityServiceTest {
     @Test
     @DisplayName("delete: removes entity")
     void delete_removesEntity() {
+        String userId = "user1";
         String vaultId = "vault1";
         String entityId = "e1";
 
         Entity entity = new Entity();
         entity.setId(entityId);
         entity.setVaultId(vaultId);
+        entity.setUserId(userId);
 
         when(entityRepo.findById(entityId)).thenReturn(Optional.of(entity));
 
-        entityService.delete(vaultId, entityId);
+        entityService.delete(userId, vaultId, entityId);
 
         verify(entityRepo, times(1)).delete(entity);
     }
