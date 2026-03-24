@@ -7,23 +7,30 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import tech.lemnova.continuum.controller.dto.note.NoteCreateRequest;
+import tech.lemnova.continuum.controller.dto.note.NoteUpdateRequest;
 import tech.lemnova.continuum.domain.entity.Entity;
 import tech.lemnova.continuum.domain.note.Note;
 import tech.lemnova.continuum.domain.plan.PlanConfiguration;
+import tech.lemnova.continuum.domain.user.User;
+import tech.lemnova.continuum.domain.user.UserRepository;
 import tech.lemnova.continuum.infra.persistence.EntityRepository;
 import tech.lemnova.continuum.infra.persistence.NoteRepository;
-import tech.lemnova.continuum.infra.vault.VaultStorageService;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
-import tech.lemnova.continuum.domain.user.User;\nimport tech.lemnova.continuum.domain.user.UserRepository;
+import tech.lemnova.continuum.infra.vault.VaultStorageService;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
-class NoteServiceUnitTest {
+public class NoteServiceUnitTest {
 
     @Mock private NoteRepository noteRepo;
     @Mock private EntityRepository entityRepo;
@@ -39,7 +46,6 @@ class NoteServiceUnitTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        // Setup default mocks for user
         User mockUser = new User();
         mockUser.setId("user1");
         mockUser.setEmail("test@test.com");
