@@ -204,7 +204,7 @@ public class NoteService {
                 .addAttributes("code", "class"); // Para syntax highlighting class names
 
         // Usar jsoup para limpar. removeAll remove scripts, iframes e outros maliciosos
-        String sanitized = Jsoup.clean(content, "", safelist, new org.jsoup.nodes.OutputSettings().prettyPrint(false));
+        String sanitized = Jsoup.clean(content, "", safelist);
 
         // Remover qualquer ocorrência de javascript: protocol
         sanitized = sanitized.replaceAll("(?i)javascript:", "");

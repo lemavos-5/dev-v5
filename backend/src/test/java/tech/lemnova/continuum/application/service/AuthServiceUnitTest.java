@@ -15,7 +15,7 @@ import tech.lemnova.continuum.controller.dto.auth.RegisterRequest;
 import tech.lemnova.continuum.controller.dto.auth.LoginRequest;
 import tech.lemnova.continuum.domain.email.EmailVerificationToken;
 import tech.lemnova.continuum.domain.email.EmailVerificationTokenRepository;
-import tech.lemnova.continuum.domain.auth.PasswordResetTokenRepository;
+import tech.lemnova.continuum.domain.email.PasswordResetTokenRepository;
 import tech.lemnova.continuum.domain.token.TokenBlacklistRepository;
 import tech.lemnova.continuum.domain.plan.PlanConfiguration;
 import tech.lemnova.continuum.domain.plan.PlanType;

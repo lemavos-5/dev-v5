@@ -11,6 +11,7 @@ import java.util.List;
 public interface NoteRepository extends MongoRepository<Note, String> {
     List<Note> findByUserId(String userId);
     long countByUserId(String userId);
+    void deleteByUserId(String userId);
 
     /**
      * Busca apenas os campos necessários para construir o grafo (id, title, entityIds).

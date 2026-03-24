@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface EntityRepository extends MongoRepository<Entity, String> {
     List<Entity> findByUserId(String userId);
     long countByUserId(String userId);
+    void deleteByUserId(String userId);
     List<Entity> findByVaultId(String vaultId);
     List<Entity> findByVaultIdAndType(String vaultId, EntityType type);
     List<Entity> findByIdIn(List<String> ids);

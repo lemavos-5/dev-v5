@@ -11,4 +11,5 @@ public interface SubscriptionRepository extends MongoRepository<Subscription, St
     Optional<Subscription> findByUserId(String userId);
     Optional<Subscription> findByStripeSubscriptionId(String stripeSubscriptionId);
     List<Subscription> findAllByUserId(String userId);
+    void deleteByUserId(String userId);
 }
