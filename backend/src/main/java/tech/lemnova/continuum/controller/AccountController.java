@@ -119,3 +119,4 @@ public class AccountController {
         userService.deleteUserWithCascade(user.getUserId());
         return ResponseEntity.noContent().build();
     }
+}

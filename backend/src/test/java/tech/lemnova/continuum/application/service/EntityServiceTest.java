@@ -11,6 +11,8 @@ import tech.lemnova.continuum.controller.dto.entity.EntityUpdateRequest;
 import tech.lemnova.continuum.domain.entity.Entity;
 import tech.lemnova.continuum.domain.note.Note;
 import tech.lemnova.continuum.domain.plan.PlanConfiguration;
+import tech.lemnova.continuum.domain.user.User;
+import tech.lemnova.continuum.domain.user.UserRepository;
 import tech.lemnova.continuum.infra.persistence.EntityRepository;
 import tech.lemnova.continuum.infra.persistence.NoteRepository;
 
@@ -23,18 +25,24 @@ import static org.mockito.Mockito.*;
 
 class EntityServiceTest {
 
-    @Mock EntityRepository entityRepo;
-    @Mock NoteRepository noteRepo;
-    @Mock tech.lemnova.continuum.domain.user.UserRepository userRepo;
-    @Mock UserService userService;
-    @Mock PlanConfiguration planConfig;
+    @Mock private EntityRepository entityRepo;
+    @Mock private NoteRepository noteRepo;
+    @Mock private UserRepository userRepo;
+    @Mock private UserService userService;
+    @Mock private PlanConfiguration planConfig;
 
     @InjectMocks
-    EntityService entityService;
+    private EntityService entityService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        // Mock user response for tests
+        User mockUser = new User();
+        mockUser.setId("user1");
+        mockUser.setEmail("test@test.com");
+        when(userRepo.findById(anyString())).thenReturn(Optional.of(mockUser));
+        when(planConfig.canCreateEntity(any(), anyLong())).thenReturn(true);
     }
 
     @Test

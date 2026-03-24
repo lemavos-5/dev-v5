@@ -14,7 +14,7 @@ import tech.lemnova.continuum.infra.persistence.EntityRepository;
 import tech.lemnova.continuum.infra.persistence.NoteRepository;
 import tech.lemnova.continuum.infra.vault.VaultStorageService;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
-import tech.lemnova.continuum.domain.user.User;
+import tech.lemnova.continuum.domain.user.User;\nimport tech.lemnova.continuum.domain.user.UserRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -25,20 +25,27 @@ import static org.mockito.Mockito.*;
 
 class NoteServiceUnitTest {
 
-    @Mock NoteRepository noteRepo;
-    @Mock EntityRepository entityRepo;
-    @Mock VaultStorageService storageService;
-    @Mock UserService userService;
-    @Mock ExtractionService extractionService;
-    @Mock PlanConfiguration planConfig;
-    @Mock tech.lemnova.continuum.domain.user.UserRepository userRepository;
+    @Mock private NoteRepository noteRepo;
+    @Mock private EntityRepository entityRepo;
+    @Mock private VaultStorageService storageService;
+    @Mock private UserService userService;
+    @Mock private ExtractionService extractionService;
+    @Mock private PlanConfiguration planConfig;
+    @Mock private UserRepository userRepository;
 
     @InjectMocks
-    NoteService noteService;
+    private NoteService noteService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        // Setup default mocks for user
+        User mockUser = new User();
+        mockUser.setId("user1");
+        mockUser.setEmail("test@test.com");
+        when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
+        when(planConfig.canCreateNote(any(), anyLong())).thenReturn(true);
+        when(extractionService.extractEntityIds(anyString(), anyList())).thenReturn(List.of());
     }
 
     private void setAuthenticatedUser(String userId) {
