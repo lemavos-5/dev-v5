@@ -33,7 +33,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             String clientIp = getClientIp(request);
 
             if (!rateLimitingManager.isAllowed(clientIp)) {
-                response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+                response.setStatus(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS.value());
                 response.setContentType("application/json");
                 response.getWriter().write("{\"error\": \"Too many requests. Please try again later.\"}");
                 return;
