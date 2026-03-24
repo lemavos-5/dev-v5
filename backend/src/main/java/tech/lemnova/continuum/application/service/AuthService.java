@@ -237,11 +237,15 @@ public class AuthService {
 
     /**
      * Revoga todos os tokens do usuário (logout).
-     * Coloca os tokens na blacklist para impedir seu uso futuro.
+     * Atualiza lastLogoutAt para invalidar tokens anteriores.
      */
     @Transactional
     public void logout(String userId, String accessToken, String refreshToken) {
         log.info("Logout for user: {}", userId);
+        
+        User user = users.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
+        user.setLastLogoutAt(Instant.now());
+        users.save(user);
         
         // Revogar Access Token se fornecido
         if (accessToken != null && jwtService.isValid(accessToken)) {
@@ -267,12 +271,15 @@ public class AuthService {
     }
 
     /**
-     * Versão simplificada de logout (sem requer tokens específicos).
+     * Versão simplificada de logout.
+     * Atualiza lastLogoutAt para invalidar todos os tokens anteriores.
      */
     @Transactional
     public void logout(String userId) {
-        log.info("Logout for user: {} (all tokens will be invalidated on next request)", userId);
-        tokenBlacklistRepository.deleteByUserId(userId);
+        log.info("Logout for user: {} (all tokens will be invalidated via lastLogoutAt)", userId);
+        User user = users.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
+        user.setLastLogoutAt(Instant.now());
+        users.save(user);
     }
 
     @Transactional

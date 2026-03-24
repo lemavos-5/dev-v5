@@ -68,6 +68,8 @@ public class User {
     @Builder.Default
     private Instant updatedAt = Instant.now();
 
+    private Instant lastLogoutAt;
+
     public void syncPlan(PlanType newPlan) {
         this.plan = newPlan;
         this.updatedAt = Instant.now();

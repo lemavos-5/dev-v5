@@ -14,8 +14,11 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tech.lemnova.continuum.domain.token.TokenBlacklistRepository;
+import tech.lemnova.continuum.domain.user.User;
+import tech.lemnova.continuum.domain.user.UserRepository;
 
 import java.io.IOException;
+import java.time.Instant;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -25,12 +28,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
     private final TokenBlacklistRepository tokenBlacklistRepository;
+    private final UserRepository userRepository;
 
     public JwtAuthFilter(JwtService jwtService, CustomUserDetailsService userDetailsService, 
-                        TokenBlacklistRepository tokenBlacklistRepository) {
+                        TokenBlacklistRepository tokenBlacklistRepository, UserRepository userRepository) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.tokenBlacklistRepository = tokenBlacklistRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -74,6 +79,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 log.warn("JWT token is blacklisted (revoked)");
                 chain.doFilter(req, res);
                 return;
+            }
+
+            // Verificar se o token foi emitido antes de lastLogoutAt
+            String userId = jwtService.extractUserId(token);
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null && user.getLastLogoutAt() != null) {
+                Instant tokenIssuedAt = jwtService.extractIssuedAt(token);
+                if (tokenIssuedAt != null && tokenIssuedAt.isBefore(user.getLastLogoutAt())) {
+                    log.warn("JWT token was issued before last logout for user: {}", userId);
+                    chain.doFilter(req, res);
+                    return;
+                }
             }
 
             if (SecurityContextHolder.getContext().getAuthentication() == null) {

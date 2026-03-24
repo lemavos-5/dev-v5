@@ -40,7 +40,11 @@ public class RateLimitingManager {
      */
     public long getRemainingTokens(String ip) {
         Bucket bucket = cache.get(ip);
-        return bucket != null ? bucket.estimateAbilityToConsume(1).getRoundedTokensToConsume() : REQUESTS;
+        if (bucket == null) {
+            return REQUESTS;
+        }
+        // Usa getAvailableTokens() para obter tokens disponíveis na versão 8.x+ do Bucket4j
+        return bucket.getAvailableTokens();
     }
 
     private Bucket createNewBucket() {

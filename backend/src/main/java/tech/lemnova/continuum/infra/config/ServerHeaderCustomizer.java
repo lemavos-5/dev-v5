@@ -14,7 +14,7 @@ public class ServerHeaderCustomizer implements WebServerFactoryCustomizer<Tomcat
     @Override
     public void customize(TomcatServletWebServerFactory factory) {
         factory.addConnectorCustomizers(connector -> {
-            connector.setAttribute("server", "");
+            connector.setProperty("server", "ContinuumServer");
         });
     }
 }

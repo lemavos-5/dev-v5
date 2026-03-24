@@ -13,6 +13,7 @@ import jakarta.annotation.PostConstruct;
 
 import java.security.Key;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
@@ -206,6 +207,18 @@ public class JwtService {
             return expiration.getTime() - System.currentTimeMillis();
         } catch (Exception e) {
             return -1;
+        }
+    }
+
+    /**
+     * Extrai a data de emissão (iat) do token JWT como Instant.
+     */
+    public Instant extractIssuedAt(String token) {
+        try {
+            Date issuedAt = parse(token).getIssuedAt();
+            return issuedAt != null ? issuedAt.toInstant() : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 

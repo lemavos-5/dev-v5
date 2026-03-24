@@ -1,5 +1,7 @@
 package tech.lemnova.continuum.application.service;
 
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -55,7 +57,8 @@ public class NoteService {
             throw new PlanLimitException("Limite de notas atingido para seu plano. Atualize para uma assinatura superior.");
         }
         
-        String content = req.content() != null ? req.content() : "";
+        // Sanitizar conteúdo para prevenir XSS
+        String content = req.content() != null ? sanitizeContent(req.content()) : "";
         String title = req.title() != null && !req.title().isBlank() ? req.title() : extractTitle(content);
         List<String> entityIds = findMatchingEntityIds(userId, content);
 
@@ -90,7 +93,8 @@ public class NoteService {
             .filter(n -> n.getUserId().equals(userId))
             .orElseThrow(() -> new NotFoundException("Note not found: " + noteId));
 
-        String newContent = req.content() != null ? req.content() : note.getContent();
+        // Sanitizar novo conteúdo para prevenir XSS
+        String newContent = req.content() != null ? sanitizeContent(req.content()) : note.getContent();
         note.setTitle(req.title() != null ? req.title() : note.getTitle());
         note.setContent(newContent);
         note.setEntityIds(findMatchingEntityIds(userId, newContent));
@@ -178,5 +182,36 @@ public class NoteService {
         if (content == null || content.isBlank()) return "Untitled";
         String firstLine = content.trim().split("\\n")[0];
         return firstLine.length() > 80 ? firstLine.substring(0, 80) : firstLine;
+    }
+
+    /**
+     * Sanitiza o conteúdo da nota removendo tags <script>, eventos JS (onclick, onload, etc)
+     * e outras tags potencialmente maliciosas, enquanto preserva formatação HTML segura.
+     * Protege contra ataques XSS (Cross-Site Scripting).
+     */
+    private String sanitizeContent(String content) {
+        if (content == null || content.isBlank()) {
+            return content;
+        }
+
+        // Usar jsoup com Safelist para permitir apenas tags seguras
+        // Safelist.basic() permite: b, em, i, strong, u, thead, tbody, tr, th, td...
+        // Mas vamos usar basicWithImages() para permitir imagens também
+        Safelist safelist = Safelist.basicWithImages()
+                .addTags("p", "div", "span", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "code", "blockquote")
+                .addAttributes("a", "href", "title")
+                .addAttributes("img", "src", "alt", "title")
+                .addAttributes("code", "class"); // Para syntax highlighting class names
+
+        // Usar jsoup para limpar. removeAll remove scripts, iframes e outros maliciosos
+        String sanitized = Jsoup.clean(content, "", safelist, new org.jsoup.nodes.OutputSettings().prettyPrint(false));
+
+        // Remover qualquer ocorrência de javascript: protocol
+        sanitized = sanitized.replaceAll("(?i)javascript:", "");
+
+        // Remover atributos de evento (onclick, onload, etc)
+        sanitized = sanitized.replaceAll("(?i)on\\w+\\s*=", "");
+
+        return sanitized;
     }
 }
