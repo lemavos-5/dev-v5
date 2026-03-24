@@ -1,5 +1,7 @@
 package tech.lemnova.continuum.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,8 +12,8 @@ import tech.lemnova.continuum.controller.dto.entity.EntityContextResponse;
 import tech.lemnova.continuum.controller.dto.entity.EntityCreateRequest;
 import tech.lemnova.continuum.controller.dto.entity.EntityResponse;
 import tech.lemnova.continuum.controller.dto.entity.EntityUpdateRequest;
+import tech.lemnova.continuum.controller.dto.note.NoteSummaryDTO;
 import tech.lemnova.continuum.domain.entity.Entity;
-import tech.lemnova.continuum.domain.note.Note;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
 
 import java.util.Collections;
@@ -19,6 +21,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/entities")
+@Tag(name = "Entities", description = "Endpoints for managing knowledge graph entities (people, places, concepts, etc)")
 public class EntityController {
 
     private final EntityService entityService;
@@ -26,6 +29,7 @@ public class EntityController {
     public EntityController(EntityService entityService) { this.entityService = entityService; }
 
     @PostMapping
+    @Operation(summary = "Create a new entity", description = "Creates a new entity (person, place, concept, etc) in the knowledge graph")
     public ResponseEntity<EntityResponse> create(
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody EntityCreateRequest req) {
@@ -35,6 +39,7 @@ public class EntityController {
     }
 
     @GetMapping
+    @Operation(summary = "List all entities", description = "Retrieves all entities (knowledge graph nodes) for the authenticated user")
     public ResponseEntity<List<EntityResponse>> list(
             @AuthenticationPrincipal CustomUserDetails user) {
         List<Entity> entities = entityService.listByUser(user.getUserId());
@@ -45,6 +50,7 @@ public class EntityController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get entity by ID", description = "Retrieves a specific entity with all its details")
     public ResponseEntity<EntityResponse> getEntity(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id) {
@@ -53,6 +59,7 @@ public class EntityController {
     }
 
     @GetMapping("/{id}/context")
+    @Operation(summary = "Get entity context", description = "Retrieves the context of an entity including relationships and metadata")
     public ResponseEntity<EntityContextResponse> getEntityContext(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id) {
@@ -60,14 +67,19 @@ public class EntityController {
     }
 
     @GetMapping("/{id}/notes")
-    public ResponseEntity<List<Note>> getNotesForEntity(
+    @Operation(summary = "Get notes mentioning entity", description = "Retrieves all notes that mention/reference this entity")
+    public ResponseEntity<List<NoteSummaryDTO>> getNotesForEntity(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id) {
-        List<Note> notes = entityService.getNotesForEntity(user.getUserId(), user.getVaultId(), id);
-        return ResponseEntity.ok(notes != null ? notes : Collections.emptyList());
+        List<NoteSummaryDTO> notes = entityService.getNotesForEntity(user.getUserId(), user.getVaultId(), id)
+                .stream()
+                .map(NoteSummaryDTO::from)
+                .toList();
+        return ResponseEntity.ok(notes);
     }
 
     @GetMapping("/{id}/connections")
+    @Operation(summary = "Get connected entities", description = "Retrieves entities that are connected to this entity through shared notes")
     public ResponseEntity<List<EntityResponse>> getConnections(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id) {
@@ -79,6 +91,7 @@ public class EntityController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update an entity", description = "Updates the title, type, or description of an entity")
     public ResponseEntity<EntityResponse> update(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id,
@@ -88,6 +101,7 @@ public class EntityController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete an entity", description = "Permanently deletes an entity from the knowledge graph")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id) {
@@ -96,6 +110,7 @@ public class EntityController {
     }
 
     @PostMapping("/{id}/track")
+    @Operation(summary = "Track habit occurrence", description = "Records a tracking event for a habit entity on the current date")
     public ResponseEntity<EntityResponse> trackHabit(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String id) {

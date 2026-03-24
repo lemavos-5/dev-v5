@@ -1,5 +1,7 @@
 package tech.lemnova.continuum.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -8,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tech.lemnova.continuum.application.service.AuthService;
 import tech.lemnova.continuum.application.service.ExportService;
+import tech.lemnova.continuum.application.service.UserService;
 import tech.lemnova.continuum.controller.dto.auth.UserContextResponse;
 import tech.lemnova.continuum.infra.security.CustomUserDetails;
 
@@ -16,22 +19,27 @@ import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/account")
+@Tag(name = "Account Management", description = "Endpoints for user account management and profile")
 public class AccountController {
 
     private final AuthService authService;
     private final ExportService exportService;
+    private final UserService userService;
 
-    public AccountController(AuthService authService, ExportService exportService) {
+    public AccountController(AuthService authService, ExportService exportService, UserService userService) {
         this.authService = authService;
         this.exportService = exportService;
+        this.userService = userService;
     }
 
     @GetMapping("/me")
+    @Operation(summary = "Get account info", description = "Retrieves the current user's account information and profile")
     public ResponseEntity<UserContextResponse> getMe(@AuthenticationPrincipal CustomUserDetails user) {
         return ResponseEntity.ok(authService.getContext(user.getUserId()));
     }
 
     @PatchMapping("/me")
+    @Operation(summary = "Update profile", description = "Updates the user's username or email address")
     public ResponseEntity<Void> updateProfile(
             @AuthenticationPrincipal CustomUserDetails user,
             @RequestBody Map<String, String> body) {
@@ -51,6 +59,7 @@ public class AccountController {
     }
 
     @PostMapping("/password/change")
+    @Operation(summary = "Change password", description = "Changes the user's password after verifying the current password")
     public ResponseEntity<Void> changePassword(
             @AuthenticationPrincipal CustomUserDetails user,
             @RequestBody Map<String, String> body) {
@@ -65,6 +74,7 @@ public class AccountController {
     }
 
     @PostMapping("/password/forgot")
+    @Operation(summary = "Initiate password reset", description = "Sends a password reset link to the user's email")
     public ResponseEntity<Void> forgotPassword(@RequestBody Map<String, String> body) {
         String email = body.get("email");
         if (email == null || email.isBlank()) return ResponseEntity.badRequest().build();
@@ -74,6 +84,7 @@ public class AccountController {
     }
 
     @PostMapping("/password/reset")
+    @Operation(summary = "Complete password reset", description = "Completes the password reset process using the reset token")
     public ResponseEntity<Void> resetPassword(@RequestBody Map<String, String> body) {
         String token = body.get("token");
         String newPass = body.get("newPassword");
@@ -85,6 +96,7 @@ public class AccountController {
     }
 
     @GetMapping("/export")
+    @Operation(summary = "Export user data", description = "Exports all user data (notes, entities, etc) as JSON for backup or migration")
     public ResponseEntity<String> exportData(@AuthenticationPrincipal CustomUserDetails user) {
         try {
             String jsonData = exportService.exportUserDataAsJson(user.getUserId());
@@ -100,4 +112,10 @@ public class AccountController {
                     .body("{\"error\":\"Falha ao exportar dados\"}");
         }
     }
-}
+
+    @DeleteMapping("/me")
+    @Operation(summary = "Delete account", description = "Permanently deletes the user account and all associated data (notes, entities, subscriptions)")
+    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal CustomUserDetails user) {
+        userService.deleteUserWithCascade(user.getUserId());
+        return ResponseEntity.noContent().build();
+    }
