@@ -1,6 +1,6 @@
 package tech.lemnova.continuum.application.service;
 
-proimport org.jsoup.Jsoup;
+import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
