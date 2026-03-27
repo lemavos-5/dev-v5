@@ -1,34 +1,36 @@
-import { defineConfig, loadEnv } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
+import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import path from "node:path";
+import { defineConfig } from "vite";
+const plugins = [react(), tailwindcss(), jsxLocPlugin()];
 
-// Load environment variables
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
-  const env = loadEnv(mode, process.cwd(), '');
-
-  return {
-    server: {
-      host: "::",
-      // Use VITE_PORT env var or default to 5173 (Vite default)
-      port: parseInt(env.VITE_PORT || '5173', 10),
-      hmr: {
-        overlay: false,
-      },
+export default defineConfig({
+  plugins,
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "client", "src"),
+      "@shared": path.resolve(import.meta.dirname, "shared"),
+      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
-    plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
-    resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "./src"),
-      },
+  },
+  envDir: path.resolve(import.meta.dirname),
+  root: path.resolve(import.meta.dirname, "client"),
+  build: {
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    emptyOutDir: true,
+  },
+  server: {
+    port: 3000,
+    strictPort: false, // Will find next available port if 3000 is busy
+    host: true,
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+    ],
+    fs: {
+      strict: true,
+      deny: ["**/.*"],
     },
-    // Explicitly define environment variables to be exposed
-    define: {
-      __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
-    },
-  };
+  },
 });
-
